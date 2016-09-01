@@ -33,15 +33,12 @@ profilePicturesDict = {}
 
 COLLISION_DIST = 20
 
-ENTRY_POINTS = [125, 375, 625, 875]
+ENTRY_POINTS = [75, 225, 375, 525]
 
 
 pygame.init()
 pygame.font.init()
 
-
-
-  
 # Hide deprecation warnings. The facebook module isn't that up-to-date (facebook.GraphAPIError).
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
@@ -74,7 +71,7 @@ except KeyError:
 
 facebook_graph = facebook.GraphAPI(oauth_access_token)
 
-user_access_token = 'EAAERmc6VfCwBAHsTbaPlYsXfPdkqcqnF0vOFqHRpsOcYylesQN1bpoAeNGdGZC95eSnF94nzhaBZC3P5pIBxhlgRstZCTjxcwEo5ZAOnAfKkZBx2tIcmZBjdB4ehzDbn4rbyp07hcnnzNTlnPNLFwAgVkJprj3syRypC8vu6jxMQZDZD'
+user_access_token = 'EAAERmc6VfCwBANdbPSGXImpZAz3amju7Fm1G0BtdygAARMUQkMcpyId5jeMYZC4gBaWK3mGrqKoeT7c5kwFHiS9Ojr4hAMat1afkw8MMVN30FRcWzkqim8k0M6CRAMUVIZAL9W67Pu9KSaUL8H7F29awJoxGC4jvR9nk7uDZCwZDZD'
 # page_access_token = 'EAAERmc6VfCwBAHWOiiaiBisijq4SDQBqwjrF1hI02T2JVKqYi7ZCBjt6H2pOdAUATy6R3gZB9rTsGaiWJMFrMRZBZAPtSAhnirZAAeAE37D75lcQmhyRfZCj8atv7pbhJfZAhu8NdfAOMjjIIbwS9ZCoGvHMMT3G1nXkvAQ4tdfDrwZDZD'
 # page_access_token = 'EAAERmc6VfCwBAHyCqtueHB23jZAQQkd7NiffO2YKkT6zUQ4RIu8nMv5d2rLI3ZCDiJaFQydhV0cKAR6ZCLwYMzwcygd811TabTtIhIZAxgbZAZBzZAOfcB2XtYRXmOW9LEfLbwY7iIoZChYJchesr4Bnkmf1MZBpJwAVavGHWMEyaYQZDZD'
 
@@ -151,15 +148,22 @@ def game_main():
 			if (enemy['x'] >= WIDTH):
 				life -= 1
 
+		A = font.render('A', True, (0, 0, 0))
+		screen.blit(A, (0, ENTRY_POINTS[0]))
+		B = font.render('B', True, (0, 0, 0))
+		screen.blit(B, (0, ENTRY_POINTS[1]))
+		C = font.render('C', True, (0, 0, 0))
+		screen.blit(C, (0, ENTRY_POINTS[2]))
+		D = font.render('D', True, (0, 0, 0))
+		screen.blit(D, (0, ENTRY_POINTS[3]))
+				
 		text = font.render(str(life), True, CANNON)
 		screen.blit(text, (0, 0))
 
-		if (random.random() <= 0.02):
+		if (random.random() <= 0.1):
 			x = 0
-			y = random.random() * HEIGHT
-			minang = math.atan2(-y, WIDTH - x)
-			maxang = math.atan2(HEIGHT - y, WIDTH - x)
-			ang = random.random() * (maxang - minang) + minang
+			y = random.choice(ENTRY_POINTS)
+			ang = math.atan2(pos[1] - y, pos[0] - x)
 			enemies.append({'ang': ang, 'x': x, 'y': y})
 
 		for (shot, enemy) in itertools.product(shots, enemies):
