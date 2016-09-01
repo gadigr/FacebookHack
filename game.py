@@ -11,11 +11,12 @@ from pygame.locals import *
 
 # SCREEN
 WIDTH = 1024
-HEIGHT = 600
+HEIGHT = 768
 FPS = 60
 
 # GENERAL
 BACK = (204, 255, 255)
+bg = pygame.image.load("back2.png")
 FORE = (0, 255, 0)
 
 # ENTITIES
@@ -154,7 +155,8 @@ def game_main():
 	start_loading_comments(last_post, comments, last_comment_time)
 	
 	while (not done):
-		screen.fill(BACK)
+		# screen.fill(BACK)
+		screen.blit(bg, (0, 0))
 		pygame.draw.circle(screen, CANNON, pos, 8, 0)
 		pygame.draw.line(screen, CANNON, pos, [pos[0] + math.cos(angle) * RADIUS, pos[1] + math.sin(angle) * RADIUS])
 		# image = getProfilePic(10207479332124589)
