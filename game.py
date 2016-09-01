@@ -41,7 +41,7 @@ pygame.font.init()
 
 
 
-  
+
 # Hide deprecation warnings. The facebook module isn't that up-to-date (facebook.GraphAPIError).
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
@@ -74,7 +74,7 @@ except KeyError:
 
 facebook_graph = facebook.GraphAPI(oauth_access_token)
 
-user_access_token = 'EAAERmc6VfCwBAHsTbaPlYsXfPdkqcqnF0vOFqHRpsOcYylesQN1bpoAeNGdGZC95eSnF94nzhaBZC3P5pIBxhlgRstZCTjxcwEo5ZAOnAfKkZBx2tIcmZBjdB4ehzDbn4rbyp07hcnnzNTlnPNLFwAgVkJprj3syRypC8vu6jxMQZDZD'
+user_access_token = 'EAAERmc6VfCwBAJi40fLXMxHNZCvYJcr2clDszvDRSKoBDS1snEE5JVh08if0FBNP0ZAOOqZCZCQ6Ky7BlxbgBouyn5Exm0xQilIsy6XURJelcEHnAAsD0i4yPzZCIrVz7ZBFDUVNy3xNOAF1AE1xEt8SqeTQttyZBrqcZA4o37S7tgZDZD'
 # page_access_token = 'EAAERmc6VfCwBAHWOiiaiBisijq4SDQBqwjrF1hI02T2JVKqYi7ZCBjt6H2pOdAUATy6R3gZB9rTsGaiWJMFrMRZBZAPtSAhnirZAAeAE37D75lcQmhyRfZCj8atv7pbhJfZAhu8NdfAOMjjIIbwS9ZCoGvHMMT3G1nXkvAQ4tdfDrwZDZD'
 # page_access_token = 'EAAERmc6VfCwBAHyCqtueHB23jZAQQkd7NiffO2YKkT6zUQ4RIu8nMv5d2rLI3ZCDiJaFQydhV0cKAR6ZCLwYMzwcygd811TabTtIhIZAxgbZAZBzZAOfcB2XtYRXmOW9LEfLbwY7iIoZChYJchesr4Bnkmf1MZBpJwAVavGHWMEyaYQZDZD'
 
@@ -117,12 +117,15 @@ font = pygame.font.SysFont("Tahoma", 40, False, False)
 
 
 def game_main():
+	global last_comment_time
 	done = False
 
 	check_comments = 0
 
 	pos = [920, 150]
 	angle = math.pi
+
+	users = []
 
 	shots = []
 
@@ -138,6 +141,26 @@ def game_main():
 		pygame.draw.line(screen, CANNON, pos, [pos[0] + math.cos(angle) * RADIUS, pos[1] + math.sin(angle) * RADIUS])
 		# image = getProfilePic(10207479332124589)
 		# screen.blit(image, (20,20))
+
+		check_comments = check_comments+1
+		if (check_comments % 120 == 0):
+			check_comments = 0
+			# check for new comments
+
+			new_comments = getCommentsAfter(last_post, last_comment_time)
+
+			for i in new_comments:
+				users.append(i["from"]["id"])
+
+			if(len(new_comments) > 0):
+				last_comment_time = dateutil.parser.parse(new_comments[0]["created_time"])
+
+		i=0
+
+		for p in users:
+			i = i+1
+			image = getProfilePic(p)
+			screen.blit(image, (i*120, 20))
 
 		for shot in shots:
 			pygame.draw.circle(screen, SHOT, (map(int, [shot['x'], shot['y']])), 5, 0)
