@@ -15,11 +15,14 @@ spaceShip = Image.open('images/missile.png')
 
 # SCREEN
 WIDTH = 1024
-HEIGHT = 600
+HEIGHT = 768
 FPS = 60
 
 # GENERAL
 BACK = (204, 255, 255)
+bg = pygame.image.load("back3.png")
+cannon_ball = pygame.image.load("ball.png")
+cannon_pic = pygame.image.load("cannon.png")
 FORE = (0, 255, 0)
 
 # ENTITIES
@@ -31,11 +34,12 @@ ENEMY = (50, 50, 200)
 SHOT_SPEED = 4
 ENEMY_SPEED = 3
 ANG_SPEED = math.pi / 100
-RADIUS = 50
+
+RADIUS = 125
 
 profilePicturesDict = {}
 
-COLLISION_DIST = 20
+COLLISION_DIST = 65
 
 ENTRY_POINTS = [75, 225, 375, 525]
 
@@ -55,8 +59,6 @@ FACEBOOK_PROFILE_ID = '10154758587264341'
 # hacktest secret = 08dff50d3f19c3f1a7a5862a2c4ff2b1
 # Anderson user ID = 10202249303870575
 
-
-
 # Trying to get an access token. Very awkward.
 oauth_args = dict(client_id	 = FACEBOOK_APP_ID,
 				client_secret = FACEBOOK_APP_SECRET,
@@ -75,7 +77,7 @@ except KeyError:
 
 facebook_graph = facebook.GraphAPI(oauth_access_token)
 
-user_access_token = 'EAAERmc6VfCwBAP3cYZBKWrV4SNP9XCs3DsT19qUnPu3TISRwdZAyIrKyuYLw5nsZBPAfXr1u8G9D3I6UvAyxcKieQblStAbpzUffUAhucqozauHfZAeYcz4y4vXBl9zb96WdZAHB0INXDMunYI720jyAiekF7CFCX32knkDcVjQZDZD'
+user_access_token = 'EAAERmc6VfCwBAF2kajxannTkhVijxfjk4JZAg6G6NLzAPME2XKojku61pn4L4cXSeD34dMlhP5ZCyZA2sOLcZAZCNIFgR3v6xW4PZBL2RXqmUG4XJL0I8Xk0QsVoMZCeukJadwDrNdZCYLsM5gsxrCQMUD2vWZAYFTK7PxbKPdPHLZAAZDZD'
 
 done = False
 
@@ -88,8 +90,14 @@ def getProfilePicAsync( profileId ):
 		image_str = facebook_graph.request("/%s/picture?height=120" % (profileId),  args={'access_token':user_access_token})
 		image_file = io.BytesIO(image_str["data"])
 		#profilePicturesDict[profileId] = pygame.image.load(image_file)
-		profilePicturesDict[profileId] = transform_image(pygame.image.load(image_file))
-	
+		try:
+			profilePicturesDict[profileId] = transform_image(pygame.image.load(image_file))
+			print('finished loading ' + profileId)
+		except Exception as ex:
+			print(ex)
+			if profileId in profilePicturesDict:
+				del profilePicturesDict[profileId]
+
 	t = threading.Thread(target=async_action)
 	t.start()
 
@@ -101,7 +109,9 @@ def transform_image(img):
 	finalPic = Image.new("RGBA",(500,220))
 	finalPic.paste(spaceShip,(0,80))
 	finalPic.paste(output.rotate(-45),(200,0),output.rotate(-45))
+	finalPic = finalPic.resize((250, 110))
 	return pygame.image.fromstring(finalPic.tobytes("raw", 'RGBA'), finalPic.size, 'RGBA')
+	#return img
 	
 	
 # get last post
@@ -128,11 +138,19 @@ def start_loading_comments(post, where_to_save_to, last_comment_time):
 			for new_comment in comments:
 				where_to_save_to.append(new_comment)
 			time.sleep(1)
-		
+
 	t = threading.Thread(target=load, args=(last_comment_time,))
 	t.start()
-	
-	
+
+def rot_center(image, angle):
+    # """rotate an image while keeping its center and size"""
+    orig_rect = image.get_rect()
+    rot_image = pygame.transform.rotate(image, angle)
+    rot_rect = orig_rect.copy()
+    rot_rect.center = rot_image.get_rect().center
+    rot_image = rot_image.subsurface(rot_rect).copy()
+    return rot_image
+
 # get last comments for post
 # def getLastComments():
 
@@ -143,35 +161,47 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Tahoma", 40, False, False)
 
-
 def game_main():
 	global last_comment_time
 	global profilePicturesDict
 	global done
+	global cannon_pic
 
 	check_comments = 0
 
-	pos = [920, 150]
+	pos = [660, 485]
 	angle = math.pi
 
 	users = []
 
 	shots = []
 
+	potential_enemies = []
+	
 	enemies = []
 
 	active = {}
 
 	comments = []
-	
+
 	life = 15
 
 	start_loading_comments(last_post, comments, last_comment_time)
-	
+
 	while (not done):
-		screen.fill(BACK)
-		pygame.draw.circle(screen, CANNON, pos, 8, 0)
+		# screen.fill(BACK)
+		screen.blit(bg, (0, 0))
+		# pygame.draw.circle(screen, CANNON, pos, 8, 0)
 		pygame.draw.line(screen, CANNON, pos, [pos[0] + math.cos(angle) * RADIUS, pos[1] + math.sin(angle) * RADIUS])
+		#cannon_pic2 = rot_center(cannon_pic, angle*180/math.pi)
+		ang = -angle * 180/math.pi + 180
+		#w, h = cannon_pic.get_rect()[2:]
+		cannon_pic2 = pygame.transform.rotate(cannon_pic, ang)
+		w, h = cannon_pic2.get_rect()[2:]
+		#screen.blit(cannon_pic2, pos)
+		screen.blit(cannon_pic2, (pos[0] - w / 2, pos[1] - h / 2))
+		#screen.blit(cannon_pic2, (pos[0] + w * math.cos(ang) + (h / 2) * math.sin(ang), pos[1] + w * math.sin(ang) + (h/2) * math.cos(ang)))
+
 		# image = getProfilePic(10207479332124589)
 		# screen.blit(image, (20,20))
 
@@ -187,53 +217,72 @@ def game_main():
 				comments.pop()
 
 			for i in new_comments:
-				users.append(i["from"]["id"])
+				#users.append(i["from"]["id"])
+				potential_enemies.append(i["from"]["id"])
 
 			if(len(new_comments) > 0):
 				last_comment_time = dateutil.parser.parse(new_comments[0]["created_time"])
 
-		i=0
+		new_potential = []
+		for potential in potential_enemies:
+			if (potential not in profilePicturesDict):
+				getProfilePicAsync(potential)
+				new_potential.append(potential)
+			elif profilePicturesDict[potential] == 'dummy':
+				new_potential.append(potential)
+			else:
+				x = 0
+				y = random.choice(ENTRY_POINTS)
+				ang = math.atan2(pos[1] - y, pos[0] - x)
+				enemies.append({'ang': ang, 'x': x, 'y': y, 'pic': profilePicturesDict[potential]})
+				
+		potential_enemies = new_potential
+		#i=0
+        #
+		#for p in users:
+		#	i = i+1
+		#	if p not in profilePicturesDict:
+		#		getProfilePicAsync(p)
 
-		for p in users:
-			i = i+1
-			getProfilePicAsync(p)
+		#i = 0
+		#for u in  profilePicturesDict.keys():
+		#	if (profilePicturesDict[u] != 'dummy'):
+		#		screen.blit(profilePicturesDict[u], (i * 120, 20))
+		#	i += 1
 
-		
-		i = 0
-		for u in  profilePicturesDict.keys():
-			if (profilePicturesDict[u] != 'dummy'):
-				screen.blit(profilePicturesDict[u], (i * 120, 20))
-			i += 1
-			
 		for shot in shots:
-			pygame.draw.circle(screen, SHOT, (map(int, [shot['x'], shot['y']])), 5, 0)
+			# pygame.draw.circle(screen, SHOT, (map(int, [shot['x'], shot['y']])), 5, 0)
+			screen.blit(cannon_ball, (map(int, [shot['x'] - 0.5*cannon_ball.get_rect()[2], shot['y']- 0.5*cannon_ball.get_rect()[3]])))
 			shot['x'] += SHOT_SPEED * math.cos(shot['ang'])
 			shot['y'] += SHOT_SPEED * math.sin(shot['ang'])
 
 		for enemy in enemies:
-			pygame.draw.circle(screen, ENEMY, map(int, [enemy['x'], enemy['y']]), 15, 0)
+			#pygame.draw.circle(screen, ENEMY, map(int, [enemy['x'], enemy['y']]), 15, 0)
+			w, h = enemy['pic'].get_rect()[2:]
+			screen.blit(enemy['pic'], map(int, [enemy['x'] - w / 2, enemy['y'] - h / 2]))
 			enemy['x'] += ENEMY_SPEED * math.cos(enemy['ang'])
 			enemy['y'] += ENEMY_SPEED * math.sin(enemy['ang'])
 			if (enemy['x'] >= WIDTH):
 				life -= 1
 
-		A = font.render('A', True, (0, 0, 0))
+		white = (255, 255, 255)
+		A = font.render('A', True, white)
 		screen.blit(A, (0, ENTRY_POINTS[0]))
-		B = font.render('B', True, (0, 0, 0))
+		B = font.render('B', True, white)
 		screen.blit(B, (0, ENTRY_POINTS[1]))
-		C = font.render('C', True, (0, 0, 0))
+		C = font.render('C', True, white)
 		screen.blit(C, (0, ENTRY_POINTS[2]))
-		D = font.render('D', True, (0, 0, 0))
+		D = font.render('D', True, white)
 		screen.blit(D, (0, ENTRY_POINTS[3]))
 
 		text = font.render(str(life), True, CANNON)
 		screen.blit(text, (0, 0))
 
-		if (random.random() <= 0.1):
-			x = 0
-			y = random.choice(ENTRY_POINTS)
-			ang = math.atan2(pos[1] - y, pos[0] - x)
-			enemies.append({'ang': ang, 'x': x, 'y': y})
+		#if (random.random() <= 0.1):
+		#	x = 0
+		#	y = random.choice(ENTRY_POINTS)
+		#	ang = math.atan2(pos[1] - y, pos[0] - x)
+		#	enemies.append({'ang': ang, 'x': x, 'y': y})
 
 		for (shot, enemy) in itertools.product(shots, enemies):
 			if (dist(shot, enemy) <= COLLISION_DIST):
