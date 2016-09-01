@@ -6,7 +6,7 @@ import warnings
 import dateutil.parser
 import io
 
-import pygame, math, random, pygame.gfxdraw, imutils, json, itertools
+import pygame, math, random, pygame.gfxdraw, imutils, json, itertools, threading, time
 from pygame.locals import *
 
 # SCREEN
@@ -75,22 +75,20 @@ facebook_graph = facebook.GraphAPI(oauth_access_token)
 user_access_token = 'EAAERmc6VfCwBAJi40fLXMxHNZCvYJcr2clDszvDRSKoBDS1snEE5JVh08if0FBNP0ZAOOqZCZCQ6Ky7BlxbgBouyn5Exm0xQilIsy6XURJelcEHnAAsD0i4yPzZCIrVz7ZBFDUVNy3xNOAF1AE1xEt8SqeTQttyZBrqcZA4o37S7tgZDZD'
 user_access_token = 'EAAERmc6VfCwBANdbPSGXImpZAz3amju7Fm1G0BtdygAARMUQkMcpyId5jeMYZC4gBaWK3mGrqKoeT7c5kwFHiS9Ojr4hAMat1afkw8MMVN30FRcWzkqim8k0M6CRAMUVIZAL9W67Pu9KSaUL8H7F29awJoxGC4jvR9nk7uDZCwZDZD'
 
-# page_access_token = 'EAAERmc6VfCwBAHWOiiaiBisijq4SDQBqwjrF1hI02T2JVKqYi7ZCBjt6H2pOdAUATy6R3gZB9rTsGaiWJMFrMRZBZAPtSAhnirZAAeAE37D75lcQmhyRfZCj8atv7pbhJfZAhu8NdfAOMjjIIbwS9ZCoGvHMMT3G1nXkvAQ4tdfDrwZDZD'
-# page_access_token = 'EAAERmc6VfCwBAHyCqtueHB23jZAQQkd7NiffO2YKkT6zUQ4RIu8nMv5d2rLI3ZCDiJaFQydhV0cKAR6ZCLwYMzwcygd811TabTtIhIZAxgbZAZBzZAOfcB2XtYRXmOW9LEfLbwY7iIoZChYJchesr4Bnkmf1MZBpJwAVavGHWMEyaYQZDZD'
-
-#create facebook live video
-# print(facebook_graph.get_object("me"))
-
-# print(facebook_graph.request('/me/picture', args={'access_token':user_access_token}))
+done = False
 
 # get profile pic by id
-def getProfilePic( profileId ):
+def getProfilePicAsync( profileId ):
 	global profilePicturesDict
-	if profileId not in profilePicturesDict:
+	if profileId in profilePicturesDict: return
+	def async_action():
+		profilePicturesDict[profileId] = 'dummy'
 		image_str = facebook_graph.request("/%s/picture?height=120" % (profileId),  args={'access_token':user_access_token})
 		image_file = io.BytesIO(image_str["data"])
 		profilePicturesDict[profileId] = pygame.image.load(image_file)
-	return profilePicturesDict[profileId]
+	
+	t = threading.Thread(target=async_action)
+	t.start()
 
 # get last post
 last_post =facebook_graph.request("/1283318901687249/feed", args={'access_token':user_access_token})['data'][0]["id"]
@@ -105,6 +103,22 @@ def getCommentsAfter(post, lastCommentTime):
 def getUserByComment(comment):
 	return comment["from"]["id"]
 
+def start_loading_comments(post, where_to_save_to, last_comment_time):
+	global done
+	def load(last_comment_time):
+		while not done:
+			comments = facebook_graph.request('/%s/comments' % (post), args={'access_token':user_access_token})["data"]
+			comments = filter(lambda c: dateutil.parser.parse(c["created_time"]) > last_comment_time, comments)
+			if(len(comments) > 0):
+					last_comment_time = dateutil.parser.parse(comments[0]["created_time"])
+			for new_comment in comments:
+				where_to_save_to.append(new_comment)
+			time.sleep(1)
+		
+	t = threading.Thread(target=load, args=(last_comment_time,))
+	t.start()
+	
+	
 # get last comments for post
 # def getLastComments():
 
@@ -118,7 +132,8 @@ font = pygame.font.SysFont("Tahoma", 40, False, False)
 
 def game_main():
 	global last_comment_time
-	done = False
+	global profilePicturesDict
+	global done
 
 	check_comments = 0
 
@@ -133,8 +148,12 @@ def game_main():
 
 	active = {}
 
+	comments = []
+	
 	life = 15
 
+	start_loading_comments(last_post, comments, last_comment_time)
+	
 	while (not done):
 		# screen.fill(BACK)
 		screen.blit(bg, (0, 0))
@@ -148,7 +167,11 @@ def game_main():
 			check_comments = 0
 			# check for new comments
 
-			new_comments = getCommentsAfter(last_post, last_comment_time)
+			#new_comments = getCommentsAfter(last_post, last_comment_time)
+			new_comments = list(comments)
+			#comments = []
+			while (len(comments) > 0):
+				comments.pop()
 
 			for i in new_comments:
 				users.append(i["from"]["id"])
@@ -160,9 +183,20 @@ def game_main():
 
 		for p in users:
 			i = i+1
-			image = getProfilePic(p)
-			screen.blit(image, (i*120, 20))
+			#image = getProfilePic(p)
+			#screen.blit(image, (i*120, 20))
+			#def show_me(what):
+				#screen.blit(what, (i * 20, 20))
+			getProfilePicAsync(p)
 
+		
+		#print(profilePicturesDict.keys())
+		i = 0
+		for u in  profilePicturesDict.keys():
+			if (profilePicturesDict[u] != 'dummy'):
+				screen.blit(profilePicturesDict[u], (i * 120, 20))
+			i += 1
+			
 		for shot in shots:
 			pygame.draw.circle(screen, SHOT, (map(int, [shot['x'], shot['y']])), 5, 0)
 			shot['x'] += SHOT_SPEED * math.cos(shot['ang'])
