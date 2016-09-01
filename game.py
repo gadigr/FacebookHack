@@ -237,21 +237,29 @@ def game_main():
 
 			for i in new_comments:
 				#users.append(i["from"]["id"])
-				potential_enemies.append(i["from"]["id"])
+				potential_enemies.append((i["from"]["id"],i["message"]))
+				
 
 			if(len(new_comments) > 0):
 				last_comment_time = dateutil.parser.parse(new_comments[0]["created_time"])
 
 		new_potential = []
-		for potential in potential_enemies:
+		for item in potential_enemies:
+			print(item)
+			potential = item[0]
+			message = item[1]
 			if (potential not in profilePicturesDict):
 				getProfilePicAsync(potential)
-				new_potential.append(potential)
+				new_potential.append(item)
 			elif profilePicturesDict[potential] == 'dummy':
-				new_potential.append(potential)
+				new_potential.append(item)
 			else:
 				x = 0
-				y = random.choice(ENTRY_POINTS)
+				#y = random.choice(ENTRY_POINTS)
+				y = ENTRY_POINTS[0]
+				opts = ['A', 'B', 'C', 'D']
+				if message in opts:
+					y = ENTRY_POINTS[opts.index(message)]
 				ang = math.atan2(pos[1] - y, pos[0] - x)
 				enemies.append({'ang': ang, 'x': x, 'y': y, 'pic': profilePicturesDict[potential]})
 
