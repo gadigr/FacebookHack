@@ -316,7 +316,7 @@ def game_main():
 				shot['x'] = enemy['x'] = -1
 
 		shots = filter(inbounds, shots)
-		enemies = filter(lambda e: not e['x'] >= pos[0], enemies)
+		enemies = filter(lambda e: not e['x'] >= pos[0] and inbounds(e), enemies)
 
 		for event in pygame.event.get():
 			if event.type == pygame.KEYDOWN:
