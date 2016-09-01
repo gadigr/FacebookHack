@@ -17,6 +17,7 @@ FPS = 60
 # GENERAL
 BACK = (204, 255, 255)
 bg = pygame.image.load("back3.png")
+cannon_ball = pygame.image.load("ball.png")
 cannon_pic = pygame.image.load("cannon.png")
 FORE = (0, 255, 0)
 
@@ -29,11 +30,11 @@ ENEMY = (50, 50, 200)
 SHOT_SPEED = 4
 ENEMY_SPEED = 3
 ANG_SPEED = math.pi / 100
-RADIUS = 120
+RADIUS = 125
 
 profilePicturesDict = {}
 
-COLLISION_DIST = 20
+COLLISION_DIST = 25
 
 ENTRY_POINTS = [75, 225, 375, 525]
 
@@ -52,8 +53,6 @@ FACEBOOK_PROFILE_ID = '10154758587264341'
 # hacktest app_id = 300827270282284
 # hacktest secret = 08dff50d3f19c3f1a7a5862a2c4ff2b1
 # Anderson user ID = 10202249303870575
-
-
 
 # Trying to get an access token. Very awkward.
 oauth_args = dict(client_id	 = FACEBOOK_APP_ID,
@@ -138,7 +137,6 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Tahoma", 40, False, False)
 
-
 def game_main():
 	global last_comment_time
 	global profilePicturesDict
@@ -217,7 +215,8 @@ def game_main():
 			i += 1
 
 		for shot in shots:
-			pygame.draw.circle(screen, SHOT, (map(int, [shot['x'], shot['y']])), 5, 0)
+			# pygame.draw.circle(screen, SHOT, (map(int, [shot['x'], shot['y']])), 5, 0)
+			screen.blit(cannon_ball, (map(int, [shot['x'] - 0.5*cannon_ball.get_rect()[2], shot['y']- 0.5*cannon_ball.get_rect()[3]])))
 			shot['x'] += SHOT_SPEED * math.cos(shot['ang'])
 			shot['y'] += SHOT_SPEED * math.sin(shot['ang'])
 
