@@ -264,7 +264,7 @@ def game_main():
 			w, h = enemy['pic'].get_rect()[2:]
 			screen.blit(enemy['pic'], map(int, [enemy['x'] - w / 2, enemy['y'] - h / 2]))
 			enemy['x'] += ENEMY_SPEED * math.cos(enemy['ang'])
-			enemy['y'] += ENEMY_SPEED * math.sin(enemy['ang'])
+			enemy['y'] += ENEMY_SPEED * math.sin(enemy['ang']) + random.random() * 10 - 5
 			if (enemy['x'] >= WIDTH):
 				life -= 1
 
