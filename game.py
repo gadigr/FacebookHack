@@ -16,7 +16,8 @@ FPS = 60
 
 # GENERAL
 BACK = (204, 255, 255)
-bg = pygame.image.load("back2.png")
+bg = pygame.image.load("back3.png")
+cannon_pic = pygame.image.load("cannon.png")
 FORE = (0, 255, 0)
 
 # ENTITIES
@@ -28,7 +29,7 @@ ENEMY = (50, 50, 200)
 SHOT_SPEED = 4
 ENEMY_SPEED = 3
 ANG_SPEED = math.pi / 100
-RADIUS = 50
+RADIUS = 120
 
 profilePicturesDict = {}
 
@@ -72,8 +73,8 @@ except KeyError:
 
 facebook_graph = facebook.GraphAPI(oauth_access_token)
 
-user_access_token = 'EAAERmc6VfCwBAJi40fLXMxHNZCvYJcr2clDszvDRSKoBDS1snEE5JVh08if0FBNP0ZAOOqZCZCQ6Ky7BlxbgBouyn5Exm0xQilIsy6XURJelcEHnAAsD0i4yPzZCIrVz7ZBFDUVNy3xNOAF1AE1xEt8SqeTQttyZBrqcZA4o37S7tgZDZD'
-user_access_token = 'EAAERmc6VfCwBANdbPSGXImpZAz3amju7Fm1G0BtdygAARMUQkMcpyId5jeMYZC4gBaWK3mGrqKoeT7c5kwFHiS9Ojr4hAMat1afkw8MMVN30FRcWzkqim8k0M6CRAMUVIZAL9W67Pu9KSaUL8H7F29awJoxGC4jvR9nk7uDZCwZDZD'
+user_access_token = 'EAAERmc6VfCwBAF7nj1ssQm4M3Qr0YFA4485dR7z9XIaoqkqaOrAbpgBccEe9jh0mJBVP3siDJ89SEQO2fViy3rMofTgvYLwtd1kWFQzbguJ7SAmx7EBt9YgOyt75NwhREzNEIuecVFMZCHZAlstnSuW3Ff30xIZBzio7XhaEQZDZD'
+user_access_token = 'EAAERmc6VfCwBAF7nj1ssQm4M3Qr0YFA4485dR7z9XIaoqkqaOrAbpgBccEe9jh0mJBVP3siDJ89SEQO2fViy3rMofTgvYLwtd1kWFQzbguJ7SAmx7EBt9YgOyt75NwhREzNEIuecVFMZCHZAlstnSuW3Ff30xIZBzio7XhaEQZDZD'
 
 done = False
 
@@ -86,7 +87,7 @@ def getProfilePicAsync( profileId ):
 		image_str = facebook_graph.request("/%s/picture?height=120" % (profileId),  args={'access_token':user_access_token})
 		image_file = io.BytesIO(image_str["data"])
 		profilePicturesDict[profileId] = pygame.image.load(image_file)
-	
+
 	t = threading.Thread(target=async_action)
 	t.start()
 
@@ -114,11 +115,19 @@ def start_loading_comments(post, where_to_save_to, last_comment_time):
 			for new_comment in comments:
 				where_to_save_to.append(new_comment)
 			time.sleep(1)
-		
+
 	t = threading.Thread(target=load, args=(last_comment_time,))
 	t.start()
-	
-	
+
+def rot_center(image, angle):
+    # """rotate an image while keeping its center and size"""
+    orig_rect = image.get_rect()
+    rot_image = pygame.transform.rotate(image, angle)
+    rot_rect = orig_rect.copy()
+    rot_rect.center = rot_image.get_rect().center
+    rot_image = rot_image.subsurface(rot_rect).copy()
+    return rot_image
+
 # get last comments for post
 # def getLastComments():
 
@@ -134,10 +143,11 @@ def game_main():
 	global last_comment_time
 	global profilePicturesDict
 	global done
+	global cannon_pic
 
 	check_comments = 0
 
-	pos = [920, 150]
+	pos = [660, 485]
 	angle = math.pi
 
 	users = []
@@ -149,16 +159,25 @@ def game_main():
 	active = {}
 
 	comments = []
-	
+
 	life = 15
 
 	start_loading_comments(last_post, comments, last_comment_time)
-	
+
 	while (not done):
 		# screen.fill(BACK)
 		screen.blit(bg, (0, 0))
-		pygame.draw.circle(screen, CANNON, pos, 8, 0)
+		# pygame.draw.circle(screen, CANNON, pos, 8, 0)
 		pygame.draw.line(screen, CANNON, pos, [pos[0] + math.cos(angle) * RADIUS, pos[1] + math.sin(angle) * RADIUS])
+		#cannon_pic2 = rot_center(cannon_pic, angle*180/math.pi)
+		ang = -angle * 180/math.pi + 180
+		#w, h = cannon_pic.get_rect()[2:]
+		cannon_pic2 = pygame.transform.rotate(cannon_pic, ang)
+		w, h = cannon_pic2.get_rect()[2:]
+		#screen.blit(cannon_pic2, pos)
+		screen.blit(cannon_pic2, (pos[0] - w / 2, pos[1] - h / 2))
+		#screen.blit(cannon_pic2, (pos[0] + w * math.cos(ang) + (h / 2) * math.sin(ang), pos[1] + w * math.sin(ang) + (h/2) * math.cos(ang)))
+
 		# image = getProfilePic(10207479332124589)
 		# screen.blit(image, (20,20))
 
@@ -189,14 +208,14 @@ def game_main():
 				#screen.blit(what, (i * 20, 20))
 			getProfilePicAsync(p)
 
-		
+
 		#print(profilePicturesDict.keys())
 		i = 0
 		for u in  profilePicturesDict.keys():
 			if (profilePicturesDict[u] != 'dummy'):
 				screen.blit(profilePicturesDict[u], (i * 120, 20))
 			i += 1
-			
+
 		for shot in shots:
 			pygame.draw.circle(screen, SHOT, (map(int, [shot['x'], shot['y']])), 5, 0)
 			shot['x'] += SHOT_SPEED * math.cos(shot['ang'])
