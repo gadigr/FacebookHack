@@ -8,6 +8,10 @@ import io
 
 import pygame, math, random, pygame.gfxdraw, imutils, json, itertools, threading, time
 from pygame.locals import *
+from PIL import Image, ImageOps
+
+mask = Image.open('images/mask.png').convert('L')
+spaceShip = Image.open('images/missile.png')
 
 # SCREEN
 WIDTH = 1024
@@ -71,8 +75,7 @@ except KeyError:
 
 facebook_graph = facebook.GraphAPI(oauth_access_token)
 
-user_access_token = 'EAAERmc6VfCwBAJi40fLXMxHNZCvYJcr2clDszvDRSKoBDS1snEE5JVh08if0FBNP0ZAOOqZCZCQ6Ky7BlxbgBouyn5Exm0xQilIsy6XURJelcEHnAAsD0i4yPzZCIrVz7ZBFDUVNy3xNOAF1AE1xEt8SqeTQttyZBrqcZA4o37S7tgZDZD'
-user_access_token = 'EAAERmc6VfCwBANdbPSGXImpZAz3amju7Fm1G0BtdygAARMUQkMcpyId5jeMYZC4gBaWK3mGrqKoeT7c5kwFHiS9Ojr4hAMat1afkw8MMVN30FRcWzkqim8k0M6CRAMUVIZAL9W67Pu9KSaUL8H7F29awJoxGC4jvR9nk7uDZCwZDZD'
+user_access_token = 'EAAERmc6VfCwBAP3cYZBKWrV4SNP9XCs3DsT19qUnPu3TISRwdZAyIrKyuYLw5nsZBPAfXr1u8G9D3I6UvAyxcKieQblStAbpzUffUAhucqozauHfZAeYcz4y4vXBl9zb96WdZAHB0INXDMunYI720jyAiekF7CFCX32knkDcVjQZDZD'
 
 done = False
 
@@ -84,11 +87,23 @@ def getProfilePicAsync( profileId ):
 		profilePicturesDict[profileId] = 'dummy'
 		image_str = facebook_graph.request("/%s/picture?height=120" % (profileId),  args={'access_token':user_access_token})
 		image_file = io.BytesIO(image_str["data"])
-		profilePicturesDict[profileId] = pygame.image.load(image_file)
+		#profilePicturesDict[profileId] = pygame.image.load(image_file)
+		profilePicturesDict[profileId] = transform_image(pygame.image.load(image_file))
 	
 	t = threading.Thread(target=async_action)
 	t.start()
 
+def transform_image(img):
+	pil_string = pygame.image.tostring(img, "RGBA", False)
+	pil_img = Image.frombytes("RGBA", tuple(img.get_rect()[2:]), pil_string)
+	output = ImageOps.fit(pil_img, mask.size, centering=(0.5, 0.5))
+	output.putalpha(mask)
+	finalPic = Image.new("RGBA",(500,220))
+	finalPic.paste(spaceShip,(0,80))
+	finalPic.paste(output.rotate(-45),(200,0),output.rotate(-45))
+	return pygame.image.fromstring(finalPic.tobytes("raw", 'RGBA'), finalPic.size, 'RGBA')
+	
+	
 # get last post
 last_post =facebook_graph.request("/1283318901687249/feed", args={'access_token':user_access_token})['data'][0]["id"]
 
@@ -181,14 +196,9 @@ def game_main():
 
 		for p in users:
 			i = i+1
-			#image = getProfilePic(p)
-			#screen.blit(image, (i*120, 20))
-			#def show_me(what):
-				#screen.blit(what, (i * 20, 20))
 			getProfilePicAsync(p)
 
 		
-		#print(profilePicturesDict.keys())
 		i = 0
 		for u in  profilePicturesDict.keys():
 			if (profilePicturesDict[u] != 'dummy'):
