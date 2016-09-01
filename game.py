@@ -6,29 +6,39 @@ import warnings
 import dateutil.parser
 import io
 
-import pygame, math, random, pygame.gfxdraw, imutils, json
+import pygame, math, random, pygame.gfxdraw, imutils, json, itertools
 from pygame.locals import *
 
+# SCREEN
 WIDTH = 1024
 HEIGHT = 600
+FPS = 60
+
+# GENERAL
 BACK = (204, 255, 255)
 FORE = (0, 255, 0)
 
-FPS = 60
-
+# ENTITIES
 CANNON = (200, 50, 50)
 SHOT = (50, 200, 50)
+ENEMY = (50, 50, 200)
 
-SHOT_SPEED = 2
-
+# DEFs
+SHOT_SPEED = 4
+ENEMY_SPEED = 3
 ANG_SPEED = math.pi / 100
 RADIUS = 50
+
 profilePicturesDict = {}
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-clock = pygame.time.Clock()
+COLLISION_DIST = 20
+
+ENTRY_POINTS = [125, 375, 625, 875]
+
+
 pygame.init()
 pygame.font.init()
+
 
 
 
@@ -101,27 +111,63 @@ def getUserByComment(comment):
 	## Post something on wall
 	# fb_response = facebook_graph.put_wall_post('Hello from Python', profile_id = FACEBOOK_PROFILE_ID)
 
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+clock = pygame.time.Clock()
+font = pygame.font.SysFont("Tahoma", 40, False, False)
+
+
 def game_main():
 	done = False
+
+	check_comments = 0
 
 	pos = [920, 150]
 	angle = math.pi
 
-	shots = [] # {ang: ??, x: ??, y: ??}
+	shots = []
+
+	enemies = []
 
 	active = {}
+
+	life = 15
+
 	while (not done):
 		screen.fill(BACK)
 		pygame.draw.circle(screen, CANNON, pos, 8, 0)
 		pygame.draw.line(screen, CANNON, pos, [pos[0] + math.cos(angle) * RADIUS, pos[1] + math.sin(angle) * RADIUS])
+		# image = getProfilePic(10207479332124589)
+		# screen.blit(image, (20,20))
 
 		for shot in shots:
 			pygame.draw.circle(screen, SHOT, (map(int, [shot['x'], shot['y']])), 5, 0)
 			shot['x'] += SHOT_SPEED * math.cos(shot['ang'])
 			shot['y'] += SHOT_SPEED * math.sin(shot['ang'])
 
-		#pos[0] += 1
-		#pos[1] += 1
+		for enemy in enemies:
+			pygame.draw.circle(screen, ENEMY, map(int, [enemy['x'], enemy['y']]), 15, 0)
+			enemy['x'] += ENEMY_SPEED * math.cos(enemy['ang'])
+			enemy['y'] += ENEMY_SPEED * math.sin(enemy['ang'])
+			if (enemy['x'] >= WIDTH):
+				life -= 1
+
+		text = font.render(str(life), True, CANNON)
+		screen.blit(text, (0, 0))
+
+		if (random.random() <= 0.02):
+			x = 0
+			y = random.random() * HEIGHT
+			minang = math.atan2(-y, WIDTH - x)
+			maxang = math.atan2(HEIGHT - y, WIDTH - x)
+			ang = random.random() * (maxang - minang) + minang
+			enemies.append({'ang': ang, 'x': x, 'y': y})
+
+		for (shot, enemy) in itertools.product(shots, enemies):
+			if (dist(shot, enemy) <= COLLISION_DIST):
+				shot['x'] = enemy['x'] = -1
+
+		shots = filter(inbounds, shots)
+		enemies = filter(inbounds, enemies)
 
 		for event in pygame.event.get():
 			if event.type == pygame.KEYDOWN:
@@ -135,8 +181,8 @@ def game_main():
 			if key == pygame.K_ESCAPE:
 				done = True
 			elif key == pygame.K_SPACE:
-				shots.append({'ang': angle, 'x': pos[0], 'y': pos[1]})
-				del active[event.key]
+				shots.append({'ang': angle, 'x': pos[0] + RADIUS * math.cos(angle), 'y': pos[1] + RADIUS * math.sin(angle)})
+				del active[key]
 			elif key == pygame.K_DOWN:
 				angle -= ANG_SPEED
 			elif key == pygame.K_UP:
@@ -146,4 +192,17 @@ def game_main():
 		clock.tick(FPS)
 
 
+
+
+
+def outofbounds(loc):
+	return loc['x'] < 0 or loc['x'] > WIDTH or loc['y'] < 0 or loc['y'] > HEIGHT
+
+def inbounds(loc):
+	return not outofbounds(loc)
+
+def dist(o1, o2):
+	return math.sqrt(math.pow(o1['x'] - o2['x'], 2) + math.pow(o1['y'] - o2['y'], 2))
+
 game_main()
+#facebook_stuff()
