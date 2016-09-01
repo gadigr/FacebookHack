@@ -9,6 +9,10 @@ import datetime
 
 import pygame, math, random, pygame.gfxdraw, imutils, json, itertools, threading, time
 from pygame.locals import *
+from PIL import Image, ImageOps
+
+mask = Image.open('images/mask.png').convert('L')
+spaceShip = Image.open('images/missile.png')
 
 # SCREEN
 WIDTH = 1280
@@ -36,7 +40,7 @@ RADIUS = 125
 
 profilePicturesDict = {}
 
-COLLISION_DIST = 25
+COLLISION_DIST = 65
 
 ENTRY_POINTS = [75, 225, 375, 525]
 
@@ -75,7 +79,8 @@ except KeyError:
 facebook_graph = facebook.GraphAPI(oauth_access_token)
 
 # user_access_token = 'EAAERmc6VfCwBAHsoshLf9stQl3oNOSVf5ubgsR4O0gvZCxiQSbbS6ZA3LUdQtR493UWeUVTp3zqSrnUZBRdKHnDWA6WMyZCa45yvZA05Y1yOegF57HZBmw9BT16FZBNB1JE5C2ZBUfK05CalOcxTAG4Xk7TMBjvBNRKcHjxLITuYOgZDZD'
-user_access_token = 'EAAERmc6VfCwBAHsoshLf9stQl3oNOSVf5ubgsR4O0gvZCxiQSbbS6ZA3LUdQtR493UWeUVTp3zqSrnUZBRdKHnDWA6WMyZCa45yvZA05Y1yOegF57HZBmw9BT16FZBNB1JE5C2ZBUfK05CalOcxTAG4Xk7TMBjvBNRKcHjxLITuYOgZDZD'
+user_access_token = 'EAAERmc6VfCwBAPQ3ssd7ILb8YAKKCdSZBRfYGhZCdlLKggoSVLZAFfUltWR5Nv7BNKJcgjSYw4EocnhKxzyoO6GCaWZAuoKPDKdTyqMacUasSxeyfppYvTB1Gp2xY9Ttu4lYWzCGJV4ITs8XH239yZBIV4K1INsS4iyikixNwiwZDZD'
+
 
 done = False
 
@@ -87,17 +92,37 @@ def getProfilePicAsync( profileId ):
 		profilePicturesDict[profileId] = 'dummy'
 		image_str = facebook_graph.request("/%s/picture?height=120" % (profileId),  args={'access_token':user_access_token})
 		image_file = io.BytesIO(image_str["data"])
-		profilePicturesDict[profileId] = pygame.image.load(image_file)
+		#profilePicturesDict[profileId] = pygame.image.load(image_file)
+		try:
+			profilePicturesDict[profileId] = transform_image(pygame.image.load(image_file))
+			print('finished loading ' + profileId)
+		except Exception as ex:
+			print(ex)
+			if profileId in profilePicturesDict:
+				del profilePicturesDict[profileId]
 
 	t = threading.Thread(target=async_action)
 	t.start()
+
+def transform_image(img):
+	pil_string = pygame.image.tostring(img, "RGBA", False)
+	pil_img = Image.frombytes("RGBA", tuple(img.get_rect()[2:]), pil_string)
+	output = ImageOps.fit(pil_img, mask.size, centering=(0.5, 0.5))
+	output.putalpha(mask)
+	finalPic = Image.new("RGBA",(500,220))
+	finalPic.paste(spaceShip,(0,80))
+	finalPic.paste(output.rotate(-45),(200,0),output.rotate(-45))
+	finalPic = finalPic.resize((250, 110))
+	return pygame.image.fromstring(finalPic.tobytes("raw", 'RGBA'), finalPic.size, 'RGBA')
+	#return img
+
 
 # get last post
 last_post =facebook_graph.request("/1283318901687249/feed", args={'access_token':user_access_token})['data'][0]["id"]
 
 try:
 	last_comment_time =  dateutil.parser.parse(facebook_graph.request('/%s/comments' % (last_post), args={'access_token':user_access_token})["data"][0]["created_time"])
-	
+
 except Exception as ex:
 	last_comment_time = dateutil.parser.parse(facebook_graph.request("/1283318901687249/feed", args={'access_token':user_access_token})['data'][0]["created_time"])
 
@@ -163,6 +188,8 @@ def game_main():
 
 	shots = []
 
+	potential_enemies = []
+
 	enemies = []
 
 	active = {}
@@ -202,28 +229,38 @@ def game_main():
 				comments.pop()
 
 			for i in new_comments:
-				users.append(i["from"]["id"])
+				#users.append(i["from"]["id"])
+				potential_enemies.append(i["from"]["id"])
 
 			if(len(new_comments) > 0):
 				last_comment_time = dateutil.parser.parse(new_comments[0]["created_time"])
 
-		i=0
+		new_potential = []
+		for potential in potential_enemies:
+			if (potential not in profilePicturesDict):
+				getProfilePicAsync(potential)
+				new_potential.append(potential)
+			elif profilePicturesDict[potential] == 'dummy':
+				new_potential.append(potential)
+			else:
+				x = 0
+				y = random.choice(ENTRY_POINTS)
+				ang = math.atan2(pos[1] - y, pos[0] - x)
+				enemies.append({'ang': ang, 'x': x, 'y': y, 'pic': profilePicturesDict[potential]})
 
-		for p in users:
-			i = i+1
-			#image = getProfilePic(p)
-			#screen.blit(image, (i*120, 20))
-			#def show_me(what):
-				#screen.blit(what, (i * 20, 20))
-			getProfilePicAsync(p)
+		potential_enemies = new_potential
+		#i=0
+        #
+		#for p in users:
+		#	i = i+1
+		#	if p not in profilePicturesDict:
+		#		getProfilePicAsync(p)
 
-
-		#print(profilePicturesDict.keys())
-		i = 0
-		for u in  profilePicturesDict.keys():
-			if (profilePicturesDict[u] != 'dummy'):
-				screen.blit(profilePicturesDict[u], (i * 120, 20))
-			i += 1
+		#i = 0
+		#for u in  profilePicturesDict.keys():
+		#	if (profilePicturesDict[u] != 'dummy'):
+		#		screen.blit(profilePicturesDict[u], (i * 120, 20))
+		#	i += 1
 
 		for shot in shots:
 			# pygame.draw.circle(screen, SHOT, (map(int, [shot['x'], shot['y']])), 5, 0)
@@ -232,29 +269,32 @@ def game_main():
 			shot['y'] += SHOT_SPEED * math.sin(shot['ang'])
 
 		for enemy in enemies:
-			pygame.draw.circle(screen, ENEMY, map(int, [enemy['x'], enemy['y']]), 15, 0)
+			#pygame.draw.circle(screen, ENEMY, map(int, [enemy['x'], enemy['y']]), 15, 0)
+			w, h = enemy['pic'].get_rect()[2:]
+			screen.blit(enemy['pic'], map(int, [enemy['x'] - w / 2, enemy['y'] - h / 2]))
 			enemy['x'] += ENEMY_SPEED * math.cos(enemy['ang'])
 			enemy['y'] += ENEMY_SPEED * math.sin(enemy['ang'])
 			if (enemy['x'] >= WIDTH):
 				life -= 1
 
-		A = font.render('A', True, (0, 0, 0))
+		white = (255, 255, 255)
+		A = font.render('A', True, white)
 		screen.blit(A, (0, ENTRY_POINTS[0]))
-		B = font.render('B', True, (0, 0, 0))
+		B = font.render('B', True, white)
 		screen.blit(B, (0, ENTRY_POINTS[1]))
-		C = font.render('C', True, (0, 0, 0))
+		C = font.render('C', True, white)
 		screen.blit(C, (0, ENTRY_POINTS[2]))
-		D = font.render('D', True, (0, 0, 0))
+		D = font.render('D', True, white)
 		screen.blit(D, (0, ENTRY_POINTS[3]))
 
 		text = font.render(str(life), True, CANNON)
 		screen.blit(text, (0, 0))
 
-		if (random.random() <= 0.1):
-			x = 0
-			y = random.choice(ENTRY_POINTS)
-			ang = math.atan2(pos[1] - y, pos[0] - x)
-			enemies.append({'ang': ang, 'x': x, 'y': y})
+		#if (random.random() <= 0.1):
+		#	x = 0
+		#	y = random.choice(ENTRY_POINTS)
+		#	ang = math.atan2(pos[1] - y, pos[0] - x)
+		#	enemies.append({'ang': ang, 'x': x, 'y': y})
 
 		for (shot, enemy) in itertools.product(shots, enemies):
 			if (dist(shot, enemy) <= COLLISION_DIST):
