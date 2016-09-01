@@ -281,7 +281,7 @@ def game_main():
 			screen.blit(enemy['pic'], map(int, [enemy['x'] - w / 2, enemy['y'] - h / 2]))
 			enemy['x'] += ENEMY_SPEED * math.cos(enemy['ang'])
 			enemy['y'] += ENEMY_SPEED * math.sin(enemy['ang']) + random.random() * 10 - 5
-			if (enemy['x'] >= WIDTH):
+			if (enemy['x'] >= pos[0]):
 				life -= 1
 
 		white = (255, 255, 255)
@@ -308,7 +308,7 @@ def game_main():
 				shot['x'] = enemy['x'] = -1
 
 		shots = filter(inbounds, shots)
-		enemies = filter(inbounds, enemies)
+		enemies = filter(lambda e: not e['x'] >= pos[0], enemies)
 
 		for event in pygame.event.get():
 			if event.type == pygame.KEYDOWN:
