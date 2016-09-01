@@ -5,18 +5,19 @@ import subprocess
 import warnings
 import dateutil.parser
 import io
+import datetime
 
 import pygame, math, random, pygame.gfxdraw, imutils, json, itertools, threading, time
 from pygame.locals import *
 
 # SCREEN
-WIDTH = 1024
-HEIGHT = 768
+WIDTH = 1280
+HEIGHT = 720
 FPS = 60
 
 # GENERAL
 BACK = (204, 255, 255)
-bg = pygame.image.load("back3.png")
+bg = pygame.image.load("back5.png")
 cannon_ball = pygame.image.load("ball.png")
 cannon_pic = pygame.image.load("cannon.png")
 FORE = (0, 255, 0)
@@ -73,8 +74,8 @@ except KeyError:
 
 facebook_graph = facebook.GraphAPI(oauth_access_token)
 
-user_access_token = 'EAAERmc6VfCwBAF7nj1ssQm4M3Qr0YFA4485dR7z9XIaoqkqaOrAbpgBccEe9jh0mJBVP3siDJ89SEQO2fViy3rMofTgvYLwtd1kWFQzbguJ7SAmx7EBt9YgOyt75NwhREzNEIuecVFMZCHZAlstnSuW3Ff30xIZBzio7XhaEQZDZD'
-user_access_token = 'EAAERmc6VfCwBAF7nj1ssQm4M3Qr0YFA4485dR7z9XIaoqkqaOrAbpgBccEe9jh0mJBVP3siDJ89SEQO2fViy3rMofTgvYLwtd1kWFQzbguJ7SAmx7EBt9YgOyt75NwhREzNEIuecVFMZCHZAlstnSuW3Ff30xIZBzio7XhaEQZDZD'
+# user_access_token = 'EAAERmc6VfCwBAHsoshLf9stQl3oNOSVf5ubgsR4O0gvZCxiQSbbS6ZA3LUdQtR493UWeUVTp3zqSrnUZBRdKHnDWA6WMyZCa45yvZA05Y1yOegF57HZBmw9BT16FZBNB1JE5C2ZBUfK05CalOcxTAG4Xk7TMBjvBNRKcHjxLITuYOgZDZD'
+user_access_token = 'EAAERmc6VfCwBAHsoshLf9stQl3oNOSVf5ubgsR4O0gvZCxiQSbbS6ZA3LUdQtR493UWeUVTp3zqSrnUZBRdKHnDWA6WMyZCa45yvZA05Y1yOegF57HZBmw9BT16FZBNB1JE5C2ZBUfK05CalOcxTAG4Xk7TMBjvBNRKcHjxLITuYOgZDZD'
 
 done = False
 
@@ -94,7 +95,15 @@ def getProfilePicAsync( profileId ):
 # get last post
 last_post =facebook_graph.request("/1283318901687249/feed", args={'access_token':user_access_token})['data'][0]["id"]
 
-last_comment_time =  dateutil.parser.parse(facebook_graph.request('/%s/comments' % (last_post), args={'access_token':user_access_token})["data"][3]["created_time"])
+try:
+	last_comment_time =  dateutil.parser.parse(facebook_graph.request('/%s/comments' % (last_post), args={'access_token':user_access_token})["data"][0]["created_time"])
+	
+except Exception as ex:
+	last_comment_time = dateutil.parser.parse(facebook_graph.request("/1283318901687249/feed", args={'access_token':user_access_token})['data'][0]["created_time"])
+
+
+
+
 
 def getCommentsAfter(post, lastCommentTime):
 	comments = facebook_graph.request('/%s/comments' % (post), args={'access_token':user_access_token})["data"]
@@ -146,7 +155,8 @@ def game_main():
 
 	check_comments = 0
 
-	pos = [660, 485]
+	# pos = [660, 485]
+	pos = [903, 510]
 	angle = math.pi
 
 	users = []
@@ -160,7 +170,7 @@ def game_main():
 	comments = []
 
 	life = 15
-
+	print(last_comment_time)
 	start_loading_comments(last_post, comments, last_comment_time)
 
 	while (not done):
@@ -181,11 +191,11 @@ def game_main():
 		# screen.blit(image, (20,20))
 
 		check_comments = check_comments+1
-		if (check_comments % 120 == 0):
+		if (check_comments % 5 == 0):
 			check_comments = 0
 			# check for new comments
 
-			#new_comments = getCommentsAfter(last_post, last_comment_time)
+			# new_comments = getCommentsAfter(last_post, last_comment_time)
 			new_comments = list(comments)
 			#comments = []
 			while (len(comments) > 0):
