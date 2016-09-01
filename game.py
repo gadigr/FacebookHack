@@ -30,6 +30,7 @@ ENEMY = (50, 50, 200)
 SHOT_SPEED = 4
 ENEMY_SPEED = 3
 ANG_SPEED = math.pi / 100
+
 RADIUS = 125
 
 profilePicturesDict = {}
