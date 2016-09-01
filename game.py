@@ -121,9 +121,12 @@ def transform_image(img):
 last_post =facebook_graph.request("/1283318901687249/feed", args={'access_token':user_access_token})['data'][0]["id"]
 
 try:
-	last_comment_time =  dateutil.parser.parse(facebook_graph.request('/%s/comments' % (last_post), args={'access_token':user_access_token})["data"][0]["created_time"])
+	# last_comment_time =  dateutil.parser.parse(facebook_graph.request('/%s/comments' % (last_post), args={'access_token':user_access_token})["data"][0]["created_time"])
+	list_comments = facebook_graph.request('/%s/comments' % (last_post), args={'access_token':user_access_token})["data"]
+	last_comment_time = dateutil.parser.parse(max(list_comments, key = lambda x: dateutil.parser.parse(x["created_time"]))["created_time"])
 
 except Exception as ex:
+	print(ex)
 	last_comment_time = dateutil.parser.parse(facebook_graph.request("/1283318901687249/feed", args={'access_token':user_access_token})['data'][0]["created_time"])
 
 
@@ -144,6 +147,7 @@ def start_loading_comments(post, where_to_save_to, last_comment_time):
 		while not done:
 			comments = facebook_graph.request('/%s/comments' % (post), args={'access_token':user_access_token})["data"]
 			comments = filter(lambda c: dateutil.parser.parse(c["created_time"]) > last_comment_time, comments)
+
 			if(len(comments) > 0):
 					last_comment_time = dateutil.parser.parse(comments[0]["created_time"])
 			for new_comment in comments:
@@ -197,7 +201,7 @@ def game_main():
 	comments = []
 
 	life = 15
-	print(last_comment_time)
+
 	start_loading_comments(last_post, comments, last_comment_time)
 
 	while (not done):
