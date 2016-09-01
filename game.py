@@ -11,6 +11,8 @@ import pygame, math, random, pygame.gfxdraw, imutils, json, itertools, threading
 from pygame.locals import *
 from PIL import Image, ImageOps
 
+load_rlock = threading.RLock()
+
 mask = Image.open('images/mask.png').convert('L')
 spaceShip = Image.open('images/missile.png')
 
@@ -90,16 +92,17 @@ def getProfilePicAsync( profileId ):
 	if profileId in profilePicturesDict: return
 	def async_action():
 		profilePicturesDict[profileId] = 'dummy'
-		image_str = facebook_graph.request("/%s/picture?height=120" % (profileId),  args={'access_token':user_access_token})
-		image_file = io.BytesIO(image_str["data"])
-		#profilePicturesDict[profileId] = pygame.image.load(image_file)
-		try:
-			profilePicturesDict[profileId] = transform_image(pygame.image.load(image_file))
-			print('finished loading ' + profileId)
-		except Exception as ex:
-			print(ex)
-			if profileId in profilePicturesDict:
-				del profilePicturesDict[profileId]
+		with load_rlock:
+			image_str = facebook_graph.request("/%s/picture?height=120" % (profileId),  args={'access_token':user_access_token})
+			image_file = io.BytesIO(image_str["data"])
+			#profilePicturesDict[profileId] = pygame.image.load(image_file)
+			try:
+				profilePicturesDict[profileId] = transform_image(pygame.image.load(image_file))
+				print('finished loading ' + profileId)
+			except Exception as ex:
+				print(ex)
+				if profileId in profilePicturesDict:
+					del profilePicturesDict[profileId]
 
 	t = threading.Thread(target=async_action)
 	t.start()
@@ -277,7 +280,7 @@ def game_main():
 			w, h = enemy['pic'].get_rect()[2:]
 			screen.blit(enemy['pic'], map(int, [enemy['x'] - w / 2, enemy['y'] - h / 2]))
 			enemy['x'] += ENEMY_SPEED * math.cos(enemy['ang'])
-			enemy['y'] += ENEMY_SPEED * math.sin(enemy['ang'])
+			enemy['y'] += ENEMY_SPEED * math.sin(enemy['ang']) + random.random() * 10 - 5
 			if (enemy['x'] >= WIDTH):
 				life -= 1
 
